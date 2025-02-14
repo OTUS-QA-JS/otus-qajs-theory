@@ -10,7 +10,7 @@
 * [Unit тесты и data driven testing](./lessons/unit-test.md) / [Практика ✍️](./tasks/unit.md)
 
 ### Тестирование API
-* [Препарируем HTTP запросы](./lessons/http.md) / [Практика ✍](./tasks/test-api-1.md)✍️
+* [Препарируем HTTP запросы](./lessons/http.md) / [Практика ✍](./tasks/test-api-1.md)
 * [Основы JS. Объекты и массивы](./lessons/js-object.md) / [Практика ✍️](./tasks/js-2.md)
 * [Библиотеки для тестирования API](./lessons/api-library.md) / [Практика ✍️](./tasks/test-api-2.md)
 * [Шаблоны проектирования в тестировании API](./lessons/api-patterns.md) / [Практика ✍️](./tasks/test-api-3.md)
