@@ -22,6 +22,8 @@ git checkout -b task/env
 * убедитесь, что в файле `src/main.js` вы видите строку `console.log(greet('World'))`, а не `console.log(greet("World"))`
 
 **Вариант 2:**
+
+### Часть 1. Prettier
 * инициализируете проект командой [npm init](https://docs.npmjs.com/cli/v8/commands/npm-init)
 * установите [prettier](https://prettier.io/docs/install)
 * создайте файл `src/main.js` с таким содержимым:
@@ -57,15 +59,89 @@ console.log(
 * запустите `npm run lint`. Изучите вывод в консоль. После содержимое файла `src/main.js`
 * дальше это ДЗ выполнять не обязательно, но если дойдёте до конца, ваша жизнь станет лучше, а волосы шелковистыми. Есть и побочные эффекты: красные глаза, мокрая от пота футболка, новые знания. 
 
-*** план, пишу для себя, чтобы не забыть, что не дописал***
-TODO:
-* написать про настройку линтера
-* editorconfig
-* vs code extensions
-* CI????
-* vs code dev containers?????
-***КОНЕЦ ПЛАНА***
+### Часть 2. Eslint
+* создадим файл конфигурации `eslint` командой `npm init @eslint/config@latest`
+```
+? How would you like to use ESLint? ..
+  To check syntax only
+> To check syntax and find problems
 
+? What type of modules does your project use? ... 
+> JavaScript modules (import/export)
+  CommonJS (require/exports)
+  None of these
+
+√ What type of modules does your project use? · esm
+? Which framework does your project use? ... 
+  React
+  Vue.js
+> None of these
+
+? Does your project use TypeScript? ... 
+> No
+  Yes
+
+? Where does your code run? ...  (Press <space> to select, <a> to toggle all, <i> to invert selection)
+√ Browser
+√ Node
+
+The config that you've selected requires the following dependencies:
+
+eslint, globals, @eslint/js
+? Would you like to install them now? » No / Yes  
+> Yes
+
+? Which package manager do you want to use? ... 
+> npm
+  yarn
+  pnpm
+  bun
+
+# Вы должны увидеть в конце
+Successfully created C:\Projects\otus\qa\temp\eslint.config.mjs file.
+```
+
+Теперь, мы можем запустить проверку `code-style` используя команду:
+```bash
+npx eslint --fix
+```
+
+### Часть 3. Eslint + Prettier
+Теперь мы отдельно можем запускать `prettier`, другой командой `eslint`, но мы можем их объеденить.
+Сделаем так, чтобы при запуске `eslint` у нас одновременно запускался и `prettier`.
+Нам понадобится [eslint-plugin-prettier](https://github.com/prettier/eslint-plugin-prettier)
+
+```bash
+npm install --save-dev eslint-plugin-prettier eslint-config-prettier
+```
+
+А после обновить конфиг `eslint.config.mjs`
+```js
+import globals from 'globals'
+import pluginJs from '@eslint/js'
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
+
+export default [
+  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  pluginJs.configs.recommended,
+  eslintPluginPrettierRecommended
+]
+```
+
+Теперь при запускеп `eslint`, будет запускаться и `prettier`
+
+Замените скрипты (алиасы) для запуска `prettier` в `package.json` на `eslint`
+[Пример](https://github.com/OTUS-QA-JS/otus-qajs/blob/master/package.json):
+```json
+{
+  // ...
+  "scripts": {
+      "lint:ci": "eslint .",
+      "lint": "eslint . --fix"
+  },
+  // ...
+}
+```
 
 **Вариант 3:**
 Для продвинутых
