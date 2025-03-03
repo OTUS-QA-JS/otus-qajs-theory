@@ -1,32 +1,15 @@
 # Пробуем unit тесты своими руками
 
 ## Цель
-В этой ДЗ знакомимся с синтаксисом обычного теста и параметризированного теста в jest. И пробуем применить принцип AAA на практике.
+В этой ДЗ знакомимся с синтаксисом обычного теста и параметризованного теста в jest. И пробуем применить [принцип AAA (Arrange Act Assert)](https://testengineer.ru/aaa-pattern/) на практике.
 
 ## Задание
-### Первая часть
 
-*Способ на ваш выбор (рекоммендую второй)*
-
-**Способ первый:**
-1. Настроить окружение (как минимум jest)
-2. Скопировать файл https://github.com/OTUS-QA-JS/otus-qajs/blob/lesson/unit-test/src/app.js
-
-**Способ второй:**
-1. git clone https://github.com/OTUS-QA-JS/otus-qajs.git
-2. git switch lesson/unit-test
-3. git remote remove origin
-4. git remote add origin -- git@github.com:ВАШ_НИК/НАЗВАНИЕ_РЕПОЗИТОРИЯ.git
-5. git checkout -b task/unit-test
-6. npm install
-
-
-
-### Вторая часть
-
-В папке `test` создайте файл  `app.test.js`
-В этом файле напиши тесты на все функции из файла `src/app.js`
-Как минимум 3 теста на каждую функцию. Тест одной из функций должен быть параметризированным.
+1. В корне проекта создать файл `src/app.js`. 
+2. Вставить в него содержимое файла https://github.com/OTUS-QA-JS/otus-qajs/blob/lesson/unit-test/src/app.js
+3. В папке с тестами (`tests` / `specs` / `test`) создайте файл  `app.test.js` или `app.spec.ts`
+4. В этом файле напишите тесты на все функции из файла `src/app.js`
+5. Как минимум 3 теста на каждую функцию. Тест одной из функций должен быть параметризованным.
 
 
 Для написания параматеризинного теста можете использовать [test.each(table)(name, fn, timeout)](https://jestjs.io/docs/api#testeachtablename-fn-timeout)
