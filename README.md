@@ -5,7 +5,7 @@
 ### Введение в автоматизацию тестирования на JS
 * [Введение в автоматизацию тестирования](./lessons/introduction.md) / [Практика ✍️](./tasks/hello.md)
 * [Git на кончиках пальцев](./lessons/git.md) / [Практика ✍](./tasks/git.md)
-* [Настройка окружения](./lessons/env.md) ✍️
+* [Настройка окружения](./lessons/env.md) [Практика ✍](./tasks/env.md)️
 * [Основы JS. Функции](./lessons/js-functions.md) / [Практика ✍](./tasks/js-1.md)️
 * [Unit тесты и data driven testing](./lessons/unit-test.md) / [Практика ✍️](./tasks/unit.md)
 
