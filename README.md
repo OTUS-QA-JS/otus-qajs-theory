@@ -15,7 +15,7 @@
 * [Библиотеки для тестирования API](./lessons/api-library.md) / [Практика ✍️](./tasks/test-api-2.md)
 * [Шаблоны проектирования в тестировании API](./lessons/api-patterns.md) / [Практика ✍️](./tasks/test-api-3.md)
 * [Валидируем HTTP запросы](./lessons/api-validation.md) / [Практика ✍️](./tasks/reflect.md)
-* [Репортеры и внешние сервисы](./lessons/reporters.md) ✍️
+* [Репортеры и внешние сервисы](./lessons/reporters.md) [Практика ✍️](./tasks/reporters.md)
 * [TypeScript в тестировании](./lessons/typescript.md) ✍️
 
 ### Практики CI/CD
