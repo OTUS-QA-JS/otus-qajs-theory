@@ -20,7 +20,7 @@
 
 ### Практики CI/CD
 * [Стратегия автоматизации в agile проектах и планирование покрытия](./lessons/strategy.md)
-* [Контейнеры. Docker](./lessons/docker.md) ✍️
+* [Контейнеры. Docker](./lessons/docker.md) [Практика ✍️](./tasks/docker.md)
 * [Катит - не катит. Github CI часть 1](./lessons/ci-1.md)
 * [Катит - не катит. Github CI часть 2](./lessons/ci-2.md) / [Практика ✍️](./tasks/ci.md)
 * [Q&A сессия](./qa.md)
