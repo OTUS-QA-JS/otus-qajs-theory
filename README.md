@@ -32,7 +32,7 @@
 * [Основные сценарии использования Playwright](./lessons/playwright.md) / [Практика ✍️](./tasks/test-ui-first.md)
 * [Шаблоны проектирования и техники тест-дизайна в тестировании UI](./lessons/ui-patterns.md) / [Практика ✍️](./tasks/test-ui-pom.md)
 * [Основы JS. Классы](./lessons/js-classes.md)
-* [Основы JS. Классы в типовых сценариях автотестов](./lessons/test-classes.md) ✍️
+* [Основы JS. Классы в типовых сценариях автотестов](./lessons/test-classes.md) [Практика ✍️](./task/test-classes.md)
 * [Behavior Driven Development и acceptance тесты](./lessons/bdd.md) / [Практика ✍](./tasks/test-ui-bdd.md)️
 
 ### Проектная работа
