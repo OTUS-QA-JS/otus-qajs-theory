@@ -1,5 +1,5 @@
 ```mermaid
-flowchart TD
+flowchart LR
         QA(["JavaScript QA Engineer"])
         C["Общее"]
         API["Тестирование API"]
