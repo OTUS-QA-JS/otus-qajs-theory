@@ -152,6 +152,73 @@ jobs:
 
     * Используем actions/upload-pages-artifact + actions/deploy-pages
 
+# Пойдём по второму варианту.
+
+Чтобы второй вариант заработал, нужно в репоризии переключить github pages на github actions
+
+[Документация](https://docs.github.com/en/actions/concepts/use-cases/deploying-with-github-actions)
+
+
+1. Перейти в настройки репозитория (`Settings`)
+2. Перейти в настройки github pages (`Pages`)
+3. `Build and deployment` -> `Source` -> Выбрать `Github Actions`
+
+Важно! По-умолчанию публикация на github pages работает только из главной ветки. `master / main` обычно
+Чтобы публикация работала из любой ветки:
+`Settins` -> `Environments` -> `github-pages` -> Deployment branches and tags -> Выбрать `No restiction`
+
+Пример джобы с публикацией отчёта на github pages
+
+```yml
+  test:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+      - run: echo "${{vars.ENV_FILE}}" >> .env
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'reports/my-report' # замените на свой путь к отчёту
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+Пример джобы отправки уведомления в `telegram`
+
+```yml
+ notification:
+    if: always()
+    needs: [ codestyle, test ]
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl --request POST \
+               --url https://api.telegram.org/bot${{secrets.TEST_TELEGRAM_TOKEN}}/sendMessage \
+               --header 'Content-Type: application/json' \
+                --data '{ "chat_id": "${{secrets.TEST_TELEGRAM_CHAT_ID}}", "text": "Report link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
+```
+
+Полностью пример `CI` можно посмотреть в [репозитории с кодом](https://github.com/OTUS-QA-JS/otus-qajs/blob/lesson/ci1/.github/workflows/ci.yml).
+
 ---
 
 ## 📚 Материалы для изучения
