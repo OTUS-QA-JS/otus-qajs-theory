@@ -225,7 +225,6 @@ jobs:
 
 * [Understanding GitHub Actions — GitHub Docs](https://docs.github.com/en/actions/learn-github-actions)
 * [CI/CD — Хабр](https://habr.com/ru/articles/448980/)
-* [Боты в Telegram — Yandex](https://yandex.ru/turbo/tproger.ru/s/articles/telegram-bot/)
 * [YAML за 5 минут — Tproger](https://tproger.ru/translations/yaml-cheatsheet/)
 * [Structuring GitHub Actions Safely — gitconnected](https://levelup.gitconnected.com/structuring-github-actions-safely-24260f74bfc1)
 
