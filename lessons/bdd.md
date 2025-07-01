@@ -69,7 +69,7 @@ BDD (Behavior-Driven Development) — это методология разраб
 Gherkin — язык описания поведения в BDD. Читаемый, структурированный, с ключевыми словами.
 
 Пример:
-``` 
+```gherkin
 Feature: Login functionality
   Scenario: Successful login with valid credentials
     Given the user is on the login page
@@ -107,7 +107,7 @@ CodeceptJS - фреймворк для end-to-end тестов, работающ
 *	TestCafe
 
 Поддерживает BDD через Gherkin и Cucumber.
-```
+```gherkin
 Scenario Outline
 
 Scenario Outline: Cash withdrawal
@@ -124,13 +124,14 @@ Examples:
 ## Практика: CodeceptJS
 
 Команды
-
-* npx create-codeceptjs .
-* codeceptjs run –steps
-* codecept-ui –app
+```bash
+  npx create-codeceptjs .
+  codeceptjs run –steps
+  codecept-ui –app
+```
 
 Пример теста
-```
+```gherkin
 Feature(‘Login’);
 Scenario(‘test something’, ({ I }) => {
   I.amOnPage(’/login’);
@@ -255,8 +256,8 @@ Object type: module
 *	в include указано: "loginPage": "./pages/LoginPage.ts"
 
 Также проверить файл steps.d.ts, и если страница не появилась — выполнить:
-```
-npx codeceptjs def
+```bash
+  npx codeceptjs def
 ```
 ---
 
@@ -305,7 +306,7 @@ module.exports = {
 * Пишутся в login_test.ts
 * Каждый тест — новый Scenario
 Например:
-```
+```gherkin
 Scenario(‘empty fields shows validation’, async ({ I }) => {
   I.amOnPage(’/login’);
   I.click(‘Submit’);
@@ -317,8 +318,8 @@ Scenario(‘empty fields shows validation’, async ({ I }) => {
 ## Интеграция Gherkin
 
 Инициализация:
-```
-npx codeceptjs gherkin:init
+```bash
+  npx codeceptjs gherkin:init
 ```
 Появляются пути в codecept.conf.ts:
 *	где искать .feature файлы
@@ -329,7 +330,7 @@ npx codeceptjs gherkin:init
 Пример feature-файла
 
 Путь: features/basic.feature
-```
+```gherkin
 Feature: Login
   Background:
     Given I am on the login page
@@ -343,7 +344,7 @@ Scenario: Successful login
 Использование Scenario Outline
 
 Для параметризованных тестов:
-```
+```gherkin
 Scenario Outline: Login combinations
   When I try to login with  and 
   Then I see
@@ -361,7 +362,7 @@ Examples:
 Каждый шаг из feature-файла должен быть описан функцией.
 
 Пример:
-```
+```gherkin
 Given(‘I am on the login page’, async ({ I }) => {
   I.amOnPage(’/login’);
 });
@@ -371,8 +372,10 @@ Given(‘I am on the login page’, async ({ I }) => {
 ## Запуск тестов
 
 Можно запустить одним из вариантов
-* npx codeceptjs run –features
-* npm run codeceptjs:ui
+```bash
+  npx codeceptjs run –features
+  npm run codeceptjs:ui
+```
 
 ---
 
