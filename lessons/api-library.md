@@ -1,670 +1,201 @@
-# Библиотеки для тестирования API
+# Библиотеки для тестирования API и построение тестового фреймворка
 
----
-Полезные ссылки:
-* [PactumJS](Free & OpenSource REST API Testing Tool for all levels in a Test Pyramid)
----
+## Содержание
+- [Подготовка тестового окружения](#подготовка-тестового-окружения)
+- [Обзор HTTP-клиентов](#обзор-http-клиентов)
+- [Построение слоя сервисов](#построение-слоя-сервисов)
+- [Централизация импортов (Re-exports)](#централизация-импортов-re-exports)
+- [Полезные ресурсы](#полезные-ресурсы)
 
-## Подготовка
+## Подготовка тестового окружения
 
-Перед началом тестирования API:
-*	добавим конфиг,
-*	добавим фикстуры,
-*	контроллеры / сервисы для API — по ходу.
----
-## Конфиг
+Перед написанием тестов необходимо настроить окружение, включая конфигурацию и тестовые данные (фикстуры).
 
-Конфиг — это файл с данными, которые зависят от окружения (dev, stage, prod). После запуска тестов его нельзя менять.
+### Конфигурация
+**Конфиг** — это объект или файл с данными, которые зависят от окружения (например, URL стенда, учетные данные). Эти данные не должны меняться во время выполнения тестов.
 
-Пример простого конфига:
-```
+Для управления конфигурацией удобно использовать переменные окружения и пакет `dotenv`.
+
+**Пример конфигурационного файла:**
+```javascript
+// framework/config/config.js
+import 'dotenv/config';
+
 const config = {
-  baseURL: ‘https://…’,
-  userId:  ‘user_id’,
-  username: ‘user_name’,
-  password: ‘password’
- }
- export default config
-```
-### Замороженный конфиг
+  // Оператор ?? (nullish coalescing) устанавливает значение по умолчанию,
+  // если переменная окружения равна null или undefined.
+  baseURL: process.env.TEST_API_URL ?? 'https://api.bookstore.com',
+  username: process.env.TEST_USERNAME ?? 'default-user',
+  password: process.env.TEST_PASSWORD ?? 'default-pass',
+};
 
-Используем dotenv + Object.freeze, чтобы сделать конфиг неизменяемым:
+// Object.freeze() делает объект неизменяемым на первом уровне вложенности.
+export default Object.freeze(config);
 ```
-import ‘dotenv/config’
- const config = {
-  baseURL:  process.env.TEST_BASE_API_URL,
-  userId:   process.env.TEST_USER_ID,
-  username: process.env.TEST_USERNAME,
-  password: process.env.TEST_PASSWORD,
- }
- export default Object.freeze(config)
-```
-Пример:
-```
-const config = { username: ‘correct’ }
- config = { username: ‘other’ }  // ошибка
- config.username = ‘other’
- console.log(config.username)  // other
-```
-Чтобы защититься от этого:
-```
-const config = Object.freeze({
-  username: ‘correct’,
-  admin: {
-   username: ‘admin’
-  }
- })
- config.username = ‘other’
- config.admin.username = ‘user’
- console.log(config.username)   // correct
- console.log(config.admin.username) // user!
-```
-Конфиг со значениями по умолчанию
 
-Если переменная окружения не определена — берём дефолтное значение:
-```
-import ‘dotenv/config’
- const config = {
-  baseURL:  process.env.TEST_API_URL  ?? ‘…’,
-  userId:   process.env.TEST_USER_ID ?? ‘…’,
-  username: process.env.TEST_USERNAME ?? ‘…’,
-  password: process.env.TEST_PASSWORD ?? ‘…’,
- }
- export default Object.freeze(config)
-```
-Оператор нулевого слияния (??)
-```
-const config = {
-  isNull:     null    ?? ‘is null’,
-  isUndefined:  undefined ?? ‘is undefined’,
-  isNumber:    0     ?? ‘is number’,
-  isEmptyString: ‘’    ?? ‘is empty string’
- }
- console.log(config)
-```
-Результат:
-```
-{
- isNull: ‘is null’,
- isUndefined: ‘is undefined’,
- isNumber: 0,
- isEmptyString: ‘’
+Чтобы сделать объект полностью неизменяемым (включая вложенные объекты), потребуется функция "глубокой заморозки".
+
+### Фикстуры (Test Data)
+Фикстуры — это тестовые данные, которые используются в тестах. Они бывают двух типов:
+
+- **Статические**: Заранее подготовленные данные, например, JSON-файл с ожидаемым ответом от API.
+- **Динамические**: Данные, которые генерируются во время выполнения тестов. Для этого удобно использовать библиотеку `@faker-js/faker`.
+
+**Пример генерации динамических данных:**
+```javascript
+// framework/fixtures/user.fixture.js
+import { faker } from '@faker-js/faker';
+
+export function generateUserCredentials() {
+  return {
+    username: faker.internet.email(),
+    password: faker.internet.password(),
+  };
 }
 ```
-Если нужно подменять и 0, и “” — использовать || вместо ??.
 
----
-## Фикстуры 
+## Обзор HTTP-клиентов
 
-Типы фикстур
-*	Динамические - генерируются во время тестов, например, новые пользователи
-*	Статические - подготовлены заранее, пример — ответ от API в JSON
---- 
-### Генерация с faker:
-```
-import { faker } from ‘@faker-js/faker’
+Для отправки запросов к API в Node.js существует несколько популярных библиотек.
 
-export function generateUserCredentials () {
-  return {
-   username: faker.internet.email(),
-   password: ‘P@ssw0rd’
-  }
- }
-```
----
+### Нативный Fetch API
+Встроенный в Node.js (с версии 18) инструмент для выполнения HTTP-запросов.
+- **Плюсы**: Не требует установки зависимостей, дает полный контроль над запросом.
+- **Минусы**: Более многословный синтаксис, требует ручной обработки данных (например, вызова `.json()`).
 
-### Fetch API
-
-Плюсы:
-*	проще, чем XMLHttpRequest или node:http,
-*	полный контроль.
-
-Минусы:
-*	больше кода, чем у axios/got/supertest,
-*	нужно вручную парсить JSON.
-
-Пример теста:
-```
-import { config } from ‘../framework’
-
-describe(‘Авторизация’, () => {
-  it(‘Успешная авторизация’, async () => {
-   const url = ${config.baseURL}/Account/v1/GenerateToken
-
+```javascript
 const response = await fetch(url, {
-    method: ‘POST’,
-    headers: { ‘Content-Type’: ‘application/json’ },
-    body: JSON.stringify({
-     userName: config.username,
-     password: config.password
-    }),
-   })
-
-expect(response.status).toBe(200)
-
-const data = await response.json()
-   expect(data.result).toBe(‘User authorized successfully.’)
-   expect(data.token).toBeDefined()
-  })
- })
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userName, password }),
+});
+const data = await response.json();
 ```
----
 
 ### Supertest
+Популярная библиотека, особенно удобная для тестирования Node.js-приложений (Express, Koa). Обладает "текучим" (fluent) API.
 
-Установка:
-```bash
-  $ npm install supertest –save-dev
-```
-Пример:
-```
-import { config } from ‘../framework’
- import supertest from ‘supertest’
+```javascript
+import supertest from 'supertest';
 
-describe(‘Авторизация’, () => {
-  it(‘Успешная авторизация’, async () => {
-   const response = await supertest(config.baseURL)
-    .post(’/Account/v1/GenerateToken’)
-    .send({
-     userName: config.username,
-     password: config.password,
-    })
+const response = await supertest(config.baseURL)
+  .post('/Account/v1/GenerateToken')
+  .send({ userName, password });
 
-expect(response.status).toBe(200)
-   expect(response.body.result).toBe(‘User authorized successfully.’)
-   expect(response.body.token).toBeDefined()
-  })
- })
+// Данные доступны в response.body
+console.log(response.body);
 ```
----
 
 ### Got
+Мощная и современная ESM-библиотека для выполнения HTTP-запросов.
 
-ESM-библиотека. Нужно добавить:
-```
-transformIgnorePatterns: [’/node_modules/(?!got)/’]
-```
-Пример:
-```
-import { config } from ‘../framework’
- import got from ‘got’
-
-describe(‘Авторизация’, () => {
-  it(‘Успешная авторизация’, async () => {
-   const url = ${config.baseURL}/Account/v1/GenerateToken
+```javascript
+import got from 'got';
 
 const response = await got.post(url, {
-    json: {
-     userName: config.username,
-     password: config.password
-    },
-    responseType: ‘json’,
-   })
+  json: { userName, password },
+  responseType: 'json',
+});
 
-expect(response.statusCode).toBe(200)
-   expect(response.body.result).toBe(‘User authorized successfully.’)
-   expect(response.body.token).toBeDefined()
-  })
- })
-```
----
-### Axios и client.js
-
-Создаём файл client.js в папке services:
-```
-import axios from ‘axios’
- import config from ‘../config/configDummy.json’
-
-const client = axios.create({
-  baseURL: config.baseURL,
-  validateStatus: () => true
- })
-
-export default client
-```
----
-
-Использование client.js в UserDummyService
-
-Пример функции getUsers:
-```
-import client from ‘./client’
-
-export const getUsers = async () => {
-  const response = await client.get(’/users’)
-  return {
-   status: response.status,
-   data: response.data
-  }
- }
-```
----
-
-Логин через fetch
-
-Создаём функцию login:
-```
-import config from ‘../config/configDummy.json’
-
-export const login = async (username, password) => {
-  const url = ${config.baseURL}/auth/login
-  const response = await fetch(url, {
-   method: ‘POST’,
-   headers: { ‘Content-Type’: ‘application/json’ },
-   body: JSON.stringify({
-    username,
-    password
-   })
-  })
-  const data = await response.json()
-  return {
-   status: response.status,
-   data
-  }
- }
-```
----
-
-getMe с передачей токена (supertest)
-
-Создаём метод getMe:
-```
-import supertest from ‘supertest’
- import config from ‘../config/configDummy.json’
-
-export const getMe = async (token) => {
-  const response = await supertest(config.baseURL)
-   .get(’/auth/me’)
-   .set(‘Authorization’, Bearer ${token})
-
-return {
-   status: response.status,
-   data: response.body
-  }
- }
-```
----
-
-Пример использования в тесте
-
-Проверка получения токена и me:
-```
-import { login, getMe } from ‘../../services/UserDummyService’
-
-describe(‘Проверка авторизации’, () => {
-  it(‘Получение токена и данных о пользователе’, async () => {
-   const loginResponse = await login(‘kminchelle’, ‘0lelplR’)
-   expect(loginResponse.status).toBe(200)
-   expect(loginResponse.data.token).toBeDefined()
-
-const meResponse = await getMe(loginResponse.data.token)
-   expect(meResponse.status).toBe(200)
-   expect(meResponse.data.email).toBe(‘kminchelle@dummyjson.com’)
-  })
- })
-```
----
-
-Экспорт и index.js
-
-Добавляем экспорт всех методов в UserDummyService.js:
-```
-export {
-  getUsers,
-  login,
-  getMe
- }
-```
-Заносим сервис в общий index.js:
-```
-export { default as config } from ‘./config/configDummy.json’
- export * as UserDummyService from ‘./services/UserDummyService’
-```
----
-Интеграция в тест auth.test.js
-
-Переходим к файлу auth.test.js:
-```
-import { UserDummyService } from ‘../../framework’
-
-describe(‘DummyJSON Auth’, () => {
-  it(‘Авторизация и получение информации о себе’, async () => {
-   const loginRes = await UserDummyService.login(‘kminchelle’, ‘0lelplR’)
-   expect(loginRes.status).toBe(200)
-   expect(loginRes.data.token).toBeDefined()
-
-const meRes = await UserDummyService.getMe(loginRes.data.token)
-   expect(meRes.status).toBe(200)
-   expect(meRes.data.email).toBe(‘kminchelle@dummyjson.com’)
-  })
- })
-```
----
-
-Возвращаем единый формат
-
-В методах getUsers, login, getMe возвращаем объект в одном формате:
-```
-return {
-  status: response.status,
-  data: response.data || response.body
- }
-```
-Если используем fetch, остаётся response.json() — отдельно обрабатываем.
-
----
-
-Запуск линтера
-```bash
-  npm run lint
+// Данные доступны в response.body
+console.log(response.body);
 ```
 
-Проверим, что структура, импорты и форматирование соответствуют стандарту проекта.
+### Axios
+Одна из самых популярных библиотек. Проста в использовании, имеет богатый функционал, например, создание предварительно настроенных клиентов.
 
----
+```javascript
+import axios from 'axios';
 
-Структура экспорта сервисов
+const response = await axios.post(url, { userName, password });
 
-В UserDummyService.js:
-```
-export {
-  getUsers,
-  login,
-  getMe
- }
-```
-В index.js фреймворка:
-```
-export * as UserDummyService from ‘./services/UserDummyService’
-```
-В корневом framework/index.js:
-```
-export { default as config } from ‘./config/configDummy.json’
- export * from ‘./services’
-```
----
-
-Унификация data/body
-
-Чтобы не запутаться при смене библиотеки (axios/supertest/got), возвращаем данные в виде data, независимо от названия:
-```
-const parsedData = response.data || response.body
-```
-И возвращаем:
-```
-return {
-  status: response.status || response.statusCode,
-  data: parsedData
- }
-```
-Это защищает от ошибок типа:
-```
-expect(response.data).toEqual({ books })
- // вместо
- expect(response.body).toEqual({ books })
-```
----
-
-Работа с книгами (BooksService)
-
-Пример вызова:
-```
-const response = await BookService.getBooks()
- expect(response.status).toBe(200)
- expect(response.data).toEqual({ books })
-```
-Если использовать разные библиотеки — применяем преобразование в data, чтобы expect был единым для всех.
-
----
-
-Заключение
-*	Все сервисы обёрнуты
-*	Все ответы приведены к единому виду
-*	Структура проекта: services, fixtures, config
-*	Импорты централизованы через index.js
-*	Поддерживается расширение (можно заменить библиотеку без переписывания логики теста)
-
-___
-
-Пример: получение токена и работа с книгами
-```
-describe(‘Работа с книгами’, () => {
-  it(‘Удаление всех книг пользователя’, async () => {
-   const loginRes = await UserDummyService.login(‘kminchelle’, ‘0lelplR’)
-   const token = loginRes.data.token
-
-const deleteRes = await UserBookService.deleteAllBooks(token)
-   expect(deleteRes.status).toBe(204)
-  })
- })
-```
----
-
-Разные библиотеки для разных сервисов
-
-Допустим, BookService использует axios, а UserBookService — supertest, можно запутаться с тем, что использовать в ожидании:
-```
-expect(response.data).toEqual({ books })
- // или
- expect(response.body).toEqual({ books })
-```
-Чтобы избежать путаницы, делаем:
-```
-const parsedData = response.data || response.body
-```
-И возвращаем:
-```
-return {
-  status: response.status || response.statusCode,
-  data: parsedData
- }
-```
----
-
-Ошибки при несогласованности .data и .body
-
-Если один сервис использует body, а другой data, то:
-```
-expect(response.data.books).toEqual([…])
- // может упасть, если data не определён
-```
-Решение — унификация через адаптацию на уровне сервиса.
-
----
-
-Проверка авторизации без пароля (через AuthService)
-```
-it(‘Нельзя авторизоваться без пароля’, async () => {
-  const response = await AuthService.generateToken({
-   userName: config.username,
-   password: ‘’,
-  })
-  expect(response.status).toBe(400)
-  expect(response.data.code).toBe(‘1200’)
-  expect(response.data.message).toBe(‘UserName and Password required.’)
- })
-```
----
-
-### Re-export модулей (централизованный импорт)
-
-Раньше:
-```
-import config from ‘../framework/config/config’
- import AuthService from ‘../framework/services/AuthService’
-```
-Теперь можно так:
-```
-// в framework/index.js
- export { default as config } from ‘./config/config’
- export { default as AuthService } from ‘./services/AuthService’
-```
-Импорт будет короче:
-```
-import { config, AuthService } from ‘../framework’
-```
-Плюсы:
-*	скрывает структуру проекта
-*	упрощает импорты
-*	легко масштабируется
-
----
-
-Пример: index.js в services/
-
-Создаём файл services/index.js:
-```
-export { default as AuthService } from ‘./AuthService’
- export { default as BookService } from ‘./BookService’
- export { default as UserBookService } from ‘./UserBookService’
- export * as UserDummyService from ‘./UserDummyService’
-```
-А в корневом framework/index.js:
-```
-export * from ‘./services’
- export { default as config } from ‘./config/configDummy.json’
-```
-Теперь можно импортировать из '../framework'.
-
----
-
-VSCode: быстрый переход
-
-Через:
-```
-import { AuthService } from ‘../../framework’
+// Данные доступны в response.data
+console.log(response.data);
 ```
 
----
+## Построение слоя сервисов
 
-### Общая структура
-```
-project-root/
-│
-├── framework/
-│   ├── config/ → конфиги
-│   ├── fixtures/ → фикстуры
-│   ├── services/ → API-обёртки
-│   └── index.js → объединяющий экспорт
-├── tests/ → тесты
-└── package.json
-```
----
+Чтобы сделать тесты более читаемыми и не зависящими от конкретной HTTP-библиотеки, создается **слой сервисов**. Каждый сервис инкапсулирует логику взаимодействия с определенной группой эндпоинтов (например, `AuthService`, `BookService`).
 
-Создание UserDummyService.js
-1.	Создаём файл:
-```
-/services/UserDummyService.js
-```
-2.	Импортируем configDummy.json:
-```
-import config from ‘../config/configDummy.json’
-```
-3.	Добавляем fetch-запрос на логин:
-```
-export const login = async (username, password) => {
-  const url = ${config.baseURL}/auth/login
-  const response = await fetch(url, {
-   method: ‘POST’,
-   headers: { ‘Content-Type’: ‘application/json’ },
-   body: JSON.stringify({ username, password })
-  })
-  const data = await response.json()
-  return {
-   status: response.status,
-   data
-  }
-```
-4.	Далее getMe с supertest:
-```
-import supertest from ‘supertest’
+### Создание HTTP-клиента (на примере Axios)
+Можно создать один настроенный экземпляр клиента и переиспользовать его во всех сервисах.
 
-export const getMe = async (token) => {
-  const response = await supertest(config.baseURL)
-   .get(’/auth/me’)
-   .set(‘Authorization’, Bearer ${token})
-  return {
-   status: response.status,
-   data: response.body
-  }
- }
-```
----
-
-Добавление axios-клиента (client.js)
-1.	В /services/client.js:
-```
-import axios from ‘axios’
- import config from ‘../config/configDummy.json’
+```javascript
+// framework/services/client.js
+import axios from 'axios';
+import config from '../config/config';
 
 const client = axios.create({
-  baseURL: config.baseURL,
-  validateStatus: () => true
- })
+  baseURL: config.baseURL,
+  // Отключаем стандартную проверку статуса, чтобы обрабатывать 4xx/5xx ответы в тестах
+  validateStatus: () => true,
+});
 
-export default client
+export default client;
 ```
-2.	Использование:
-```
-import client from ‘./client’
 
-export const getUsers = async () => {
-  const response = await client.get(’/users’)
-  return {
-   status: response.status,
-   data: response.data
-  }
- }
-```
----
+### Унификация ответов (Паттерн "Адаптер")
+Разные библиотеки возвращают данные и статус в разных полях (`.data` у axios, `.body` у supertest, `.json()` у fetch). Слой сервисов должен **адаптировать** эти ответы к единому формату, чтобы тесты всегда работали с одинаковой структурой.
 
-Экспорт всех методов в UserDummyService.js
-```
-export {
-  getUsers,
-  login,
-  getMe
- }
-```
----
+**Пример реализации сервиса с унификацией ответа:**
 
-## Объединение в index.js
+```javascript
+// framework/services/AuthService.js
+import client from './client'; // Наш настроенный axios-клиент
 
-В /framework/index.js:
-```
-export { default as config } from ‘./config/configDummy.json’
- export * from ‘./services’
-```
-В /services/index.js:
-```
-export * as UserDummyService from ‘./UserDummyService’
-```
----
+async function generateToken({ userName, password }) {
+  const response = await client.post('/Account/v1/GenerateToken', { userName, password });
 
-Тест auth.test.js
-```
-import { UserDummyService } from ‘../../framework’
+  // Приводим ответ к единому формату { status, data, headers }
+  return {
+    status: response.status,
+    data: response.data, // axios возвращает данные в .data
+    headers: response.headers,
+  };
+}
 
-describe(‘DummyJSON Auth’, () => {
-  it(‘Авторизация и получение данных о себе’, async () => {
-   const loginRes = await UserDummyService.login(‘kminchelle’, ‘0lelplR’)
-   expect(loginRes.status).toBe(200)
-   expect(loginRes.data.token).toBeDefined()
-
-const meRes = await UserDummyService.getMe(loginRes.data.token)
-   expect(meRes.status).toBe(200)
-   expect(meRes.data.email).toBe(‘kminchelle@dummyjson.com’)
-  })
- })
+export default { generateToken };
 ```
----
 
-Запуск линтера
-```bash
-  npm run lint
+Теперь, если мы решим заменить `axios` на `supertest`, нам нужно будет изменить только код внутри сервиса, а тесты останутся прежними.
+
+## Централизация импортов (Re-exports)
+
+Чтобы не писать в тестах длинные пути (`import AuthService from '../../framework/services/AuthService.js'`), используется паттерн **"Компоновщик"** с помощью "barrel files" (`index.js`). Они собирают все экспорты из директории в одном месте.
+
+**Структура проекта:**
 ```
-Проверяем, что:
-*	структура корректна
-*	сервисы обёрнуты
-*	данные приходят в едином формате
-*	авторизация и getMe работают на основе сервиса
+framework/
+├── config/
+│   └── config.js
+├── services/
+│   ├── AuthService.js
+│   ├── BookService.js
+│   └── index.js       // Barrel file для сервисов
+└── index.js           // Главный barrel file фреймворка
+```
+
+**Пример `framework/services/index.js`:**
+```javascript
+export { default as AuthService } from './AuthService';
+export { default as BookService } from './BookService';
+```
+
+**Пример `framework/index.js`:**
+```javascript
+export { default as config } from './config/config';
+export * from './services'; // Ре-экспортируем все из services/index.js
+```
+
+**Результат**: импорты в тестах становятся короткими и чистыми.
+```javascript
+// Раньше:
+// import config from '../../framework/config/config';
+// import AuthService from '../../framework/services/AuthService';
+
+// Теперь:
+import { config, AuthService } from '../../framework';
+```
+
+## Полезные ресурсы
+- **PactumJS**: [Инструмент для тестирования REST API](https://pactumjs.github.io/)
