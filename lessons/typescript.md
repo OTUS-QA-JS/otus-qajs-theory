@@ -131,3 +131,4 @@ ts-migrate-full .
 -   **TypeScript Handbook**: [The Basics](https://www.typescriptlang.org/docs/handbook/2/basic-types.html), [Everyday Types](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html)
 -   **Total TypeScript**: [Type vs Interface: Which Should You Use?](https://www.totaltypescript.com/type-vs-interface)
 -   **Code Basic**: [Курс по TypeScript](https://www.youtube.com/watch?v=Bxg-a_2-tF8)
+-   **Другое**: [Базовые конфиги для TS](https://github.com/tsconfig/bases)
