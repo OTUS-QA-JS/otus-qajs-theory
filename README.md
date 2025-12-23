@@ -15,12 +15,12 @@
 * [Библиотеки для тестирования API](./lessons/api-library.md) / [Практика ✍️️](./tasks/test-api-2.md)
 * [Шаблоны проектирования в тестировании API](./lessons/api-patterns.md) / [Практика ✍️️](./tasks/test-api-3.md)
 * [Валидируем HTTP запросы](./lessons/api-validation.md) / [Практика ✍️️](./tasks/reflect.md)
-* [Репортеры и внешние сервисы](./lessons/reporters.md) [Практика ✍️️](./tasks/reporters.md)
-* [TypeScript в тестировании](./lessons/typescript.md) [Практика ✍️️](./tasks/ts.md)️
+* [Репортеры и внешние сервисы](./lessons/reporters.md) / [Практика ✍️️](./tasks/reporters.md)
+* [TypeScript в тестировании](./lessons/typescript.md) / [Практика ✍️️](./tasks/ts.md)️
 
 ### Практики CI/CD
 * [Стратегия автоматизации в agile проектах и планирование покрытия](./lessons/strategy.md)
-* [Контейнеры. Docker](./lessons/docker.md) [Практика ✍️️](./tasks/docker.md)
+* [Контейнеры. Docker](./lessons/docker.md) / [Практика ✍️️](./tasks/docker.md)
 * [Катит - не катит. Github CI часть 1](./lessons/ci1-github.md)
 * [Катит - не катит. Github CI часть 2](./lessons/ci2-gitlab.md) / [Практика ✍️️](./tasks/ci.md)
 * [Q&A сессия](./lessons/qa.md)
