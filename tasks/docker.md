@@ -53,7 +53,7 @@ npm test
 docker run otus-qajs sh -c "npm test"
 
 # 3
-docker run otus-qajs --memory=1G --cpus=2 sh -c "NODE_OPTIONS=\"--max-old-space-size=1024\" npm test"
+docker run --memory=1G --cpus=2 otus-qajs sh -c "NODE_OPTIONS='--max-old-space-size=1024' npm test"
 ```
 
 5. В чате поделитесь своими результатами. Сколько времени тесты проходили при разном способе запуска
