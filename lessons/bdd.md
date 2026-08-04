@@ -2,11 +2,15 @@
 
 ## Содержание
 - [Что такое BDD?](#что-такое-bdd)
+- [Три практики BDD](#три-практики-bdd)
 - [BDD vs. TDD](#bdd-vs-tdd)
 - [Основные компоненты BDD](#основные-компоненты-bdd)
 - [Язык Gherkin: Написание сценариев](#язык-gherkin-написание-сценариев)
 - [Инструменты для BDD в JavaScript](#инструменты-для-bdd-в-javascript)
-- [Практический пример: Настройка CodeceptJS](#практический-пример-настройка-codeceptjs)
+- [Практический пример: Cucumber.js + Playwright](#практический-пример-cucumberjs--playwright)
+- [Как Cucumber находит код для шага](#как-cucumber-находит-код-для-шага)
+- [Когда BDD оправдан, а когда нет](#когда-bdd-оправдан-а-когда-нет)
+- [Antipatterns: как не надо писать сценарии](#antipatterns-как-не-надо-писать-сценарии)
 - [Полезные ресурсы](#полезные-ресурсы)
 
 ## Что такое BDD?
@@ -14,6 +18,37 @@
 **BDD (Behavior-Driven Development)** — это методология разработки программного обеспечения, которая выросла из TDD (Test-Driven Development). Главная цель BDD — улучшить коммуникацию между техническими специалистами (разработчиками, QA) и нетехническими участниками (менеджерами, аналитиками, заказчиками).
 
 BDD фокусируется на описании **поведения** системы с точки зрения пользователя. Эти описания создаются на структурированном, естественном языке, понятном всем участникам процесса, и служат одновременно документацией, критериями приемки и основой для автоматизированных тестов.
+
+## Три практики BDD
+
+BDD — это не про инструмент и не про слова `Given/When/Then`. Это три практики, которые выполняются последовательно:
+
+1.  **Discovery (исследование)** — совместная сессия команды: бизнес, разработка, тестирование. Разбираем требование на конкретных примерах и находим неоднозначности до написания кода. Классический формат — **«три амиго»** (Product Owner / Developer / QA) и **Example Mapping**.
+2.  **Formulation (формализация)** — найденные примеры записываем на Gherkin. Получается документ, который читает и подтверждает заказчик.
+3.  **Automation (автоматизация)** — формализованные примеры превращаем в исполняемые тесты, привязывая к каждому шагу код.
+
+Ошибка большинства команд: взять только третий пункт. Тогда получаются обычные автотесты, но с лишней прослойкой из регулярных выражений — накладные расходы есть, пользы нет. **Ценность BDD появляется на первых двух шагах.**
+
+### Example Mapping
+
+Техника разбора требования за 20–30 минут. Карточки четырёх цветов:
+
+-   🟨 **Жёлтая — история (Story).** Что хотим сделать.
+-   🟦 **Синяя — правило (Rule).** Бизнес-правило, ограничение, критерий приёмки.
+-   🟩 **Зелёная — пример (Example).** Конкретная иллюстрация правила. Именно она станет `Scenario`.
+-   🟥 **Красная — вопрос (Question).** То, на что никто в комнате не знает ответа.
+
+```
+🟨 История: вход в личный кабинет
+   🟦 Правило: вход только для зарегистрированного пользователя
+      🟩 Пример: верные email и пароль → попадаем в кабинет
+      🟩 Пример: незарегистрированный email → «Неверный email или пароль»
+   🟦 Правило: пустые поля не отправляются на сервер
+      🟩 Пример: пустой email → «Укажите email»
+   🟥 Вопрос: блокируем ли аккаунт после N неудачных попыток?
+```
+
+Много красных карточек — требование не готово к разработке. Много правил без примеров — требование не понято. Готовая карта почти дословно переносится в feature-файл.
 
 ## BDD vs. TDD
 
@@ -67,70 +102,258 @@ Scenario Outline: Попытка входа с разными данными
 
 ## Инструменты для BDD в JavaScript
 
--   **Cucumber.js**: Самый популярный BDD-инструмент для JavaScript. Он отвечает за парсинг Gherkin и выполнение связанных с ним определений шагов.
--   **CodeceptJS**: Высокоуровневый фреймворк для end-to-end тестирования, который предоставляет удобный API и может интегрироваться с Cucumber.js для полноценной поддержки BDD.
+-   **Cucumber.js** — эталонная реализация Cucumber для JavaScript/TypeScript. Отвечает за парсинг Gherkin, поиск подходящих step definitions и запуск сценариев. Сам по себе браузер не открывает — это просто раннер.
+-   **Playwright** — библиотека автоматизации браузера. В связке с Cucumber мы используем именно библиотеку `playwright` (не раннер `@playwright/test`): браузером управляем сами из хуков.
+-   **`@cucumber/pretty-formatter`, `html`-форматтер, Allure** — репортеры, превращающие результат прогона в человекочитаемый отчёт.
 
-## Практический пример: Настройка CodeceptJS
+Важно понимать разделение ответственности:
 
-### Инициализация проекта
-CodeceptJS предоставляет интерактивный мастер настройки:
+| Слой                | Инструмент            | Отвечает за                                    |
+|:--------------------|:----------------------|:-----------------------------------------------|
+| Сценарии            | Gherkin (`.feature`)  | ЧТО проверяем, на языке бизнеса                |
+| Склейка             | Cucumber.js           | Как текст шага превращается в вызов функции    |
+| Действия в браузере | Playwright + PageObject| КАК технически выполняется шаг                 |
+
+## Практический пример: Cucumber.js + Playwright
+
+### Установка
+
 ```bash
-npx codeceptjs init
-```
-В процессе настройки можно выбрать Playwright в качестве драйвера, указать пути к тестам и включить поддержку TypeScript.
-
-### Интеграция Gherkin
-Для добавления BDD-возможностей в существующий проект CodeceptJS выполните команду:
-```bash
-npx codeceptjs gherkin:init
-```
-Эта команда создаст необходимые директории (`features`, `step_definitions`) и обновит конфигурационный файл `codecept.conf.ts`.
-
-### Написание Feature-файла
-Создайте файл, например, `features/login.feature`:
-
-```gherkin
-Feature: Авторизация
-
-  Scenario: Успешный вход в систему
-    Given я нахожусь на странице входа
-    When я ввожу корректные данные пользователя
-    And нажимаю кнопку "Войти"
-    Then я должен быть перенаправлен на главную страницу
+npm i -D @cucumber/cucumber playwright ts-node typescript @types/node
+npx playwright install chromium
 ```
 
-### Написание Step Definitions
-Создайте файл `step_definitions/steps.ts` и реализуйте каждый шаг.
+### Конфигурация
+
+Cucumber читает настройки из `cucumber.js` (или `cucumber.mjs`) в корне проекта:
+
+```javascript
+// cucumber.js
+module.exports = {
+  default: {
+    require: ['features/support/**/*.ts', 'features/step_definitions/**/*.ts'],
+    requireModule: ['ts-node/register'],
+    paths: ['features/**/*.feature'],
+    format: ['progress-bar', ['html', 'reports/cucumber.html']],
+    formatOptions: { snippetInterface: 'async-await' },
+  },
+};
+```
+
+### Структура проекта
+
+```
+features/
+  login.feature              # сценарии на Gherkin
+  step_definitions/
+    login.steps.ts           # реализация шагов
+  support/
+    world.ts                 # кастомный World: браузер, страница, PageObject'ы
+    hooks.ts                 # Before / After: открыть и закрыть браузер
+pages/
+  LoginPage.ts               # Page Object из прошлого занятия — переиспользуем как есть
+```
+
+### World: контекст сценария
+
+`World` — это объект `this` внутри каждого шага. Он создаётся заново на каждый сценарий, поэтому именно в нём живут браузер, страница и Page Object'ы.
 
 ```typescript
-// step_definitions/steps.ts
-const { I } = inject();
+// features/support/world.ts
+import { setWorldConstructor, World, IWorldOptions } from '@cucumber/cucumber';
+import { Browser, BrowserContext, Page } from 'playwright';
+import { LoginPage } from '../../pages/LoginPage';
 
-Given('я нахожусь на странице входа', () => {
-  I.amOnPage('/login');
+export class CustomWorld extends World {
+  browser!: Browser;
+  context!: BrowserContext;
+  page!: Page;
+  loginPage!: LoginPage;
+
+  constructor(options: IWorldOptions) {
+    super(options);
+  }
+}
+
+setWorldConstructor(CustomWorld);
+```
+
+### Хуки: жизненный цикл браузера
+
+```typescript
+// features/support/hooks.ts
+import { Before, After, BeforeAll, AfterAll, Status, setDefaultTimeout } from '@cucumber/cucumber';
+import { chromium, Browser } from 'playwright';
+import { CustomWorld } from './world';
+import { LoginPage } from '../../pages/LoginPage';
+
+setDefaultTimeout(30_000);
+
+let browser: Browser;
+
+BeforeAll(async () => {
+  browser = await chromium.launch({ headless: !process.env.HEADED });
 });
 
-When('я ввожу корректные данные пользователя', () => {
-  I.fillField('#username', 'testuser');
-  I.fillField('#password', 'password123');
+Before(async function (this: CustomWorld) {
+  this.context = await browser.newContext({ baseURL: 'http://127.0.0.1:3000' });
+  this.page = await this.context.newPage();
+  this.loginPage = new LoginPage(this.page);
 });
 
-When('нажимаю кнопку {string}', (buttonText: string) => {
-  I.click(buttonText);
+After(async function (this: CustomWorld, { result }) {
+  // скриншот только для упавших сценариев — попадёт в html-отчёт
+  if (result?.status === Status.FAILED) {
+    const screenshot = await this.page.screenshot();
+    this.attach(screenshot, 'image/png');
+  }
+  await this.context.close();
 });
 
-Then('я должен быть перенаправлен на главную страницу', () => {
-  I.seeInCurrentUrl('/dashboard');
+AfterAll(async () => {
+  await browser.close();
 });
 ```
 
-### Запуск тестов
+### Feature-файл
+
+```gherkin
+# language: ru
+Функция: Авторизация
+
+  Предыстория:
+    Дано пользователь "ivan@example.com" с паролем "super-secret" зарегистрирован
+    И открыта страница входа
+
+  Сценарий: Успешный вход в систему
+    Когда пользователь входит с email "ivan@example.com" и паролем "super-secret"
+    Тогда отображается приветствие "Добро пожаловать, Иванов Иван!"
+
+  Структура сценария: Вход с некорректными данными
+    Когда пользователь входит с email "<email>" и паролем "<password>"
+    Тогда отображается ошибка "<message>"
+
+    Примеры:
+      | email             | password     | message                   |
+      | ivan@example.com  | wrong-pass   | Неверный email или пароль |
+      | ghost@example.com | super-secret | Неверный email или пароль |
+```
+
+Строка `# language: ru` включает русские ключевые слова Gherkin (`Дано` / `Когда` / `Тогда`). Полный список локализаций — `npx cucumber-js --i18n-languages`.
+
+### Step definitions
+
+Шаг — это регулярное выражение или Cucumber Expression плюс функция. Обратите внимание: шаги **не знают о локаторах**, они вызывают методы Page Object.
+
+```typescript
+// features/step_definitions/login.steps.ts
+import { Given, When, Then } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+import { CustomWorld } from '../support/world';
+
+Given('открыта страница входа', async function (this: CustomWorld) {
+  await this.loginPage.open();
+});
+
+When(
+  'пользователь входит с email {string} и паролем {string}',
+  async function (this: CustomWorld, email: string, password: string) {
+    await this.loginPage.login(email, password);
+  },
+);
+
+Then('отображается приветствие {string}', async function (this: CustomWorld, text: string) {
+  await expect(this.loginPage.successMessage).toHaveText(text);
+});
+```
+
+`{string}`, `{int}`, `{word}` — параметры Cucumber Expressions. Свои типы (например, `{level}`) объявляются через `defineParameterType`.
+
+### Запуск
+
 ```bash
-# Запустить все feature-файлы
-npx codeceptjs run --features
+npx cucumber-js                      # все сценарии
+npx cucumber-js --tags "@smoke"      # только помеченные тегом
+npx cucumber-js features/login.feature:12   # конкретный сценарий по номеру строки
+npx cucumber-js --dry-run            # проверить, что для всех шагов есть реализация
 ```
+
+Теги ставятся над `Функция:` или `Сценарий:` (`@smoke`, `@regression`) и позволяют собирать наборы под разные пайплайны CI.
+
+## Как Cucumber находит код для шага
+
+Механика, которую полезно понимать, чтобы отлаживать «шаг не реализован»:
+
+1.  Cucumber парсит `.feature` и получает список шагов — просто строк текста.
+2.  Загружает все файлы из `require` и собирает реестр зарегистрированных шагов (`Given('...', fn)`).
+3.  Для каждой строки ищет **ровно одно** совпадение по Cucumber Expression или регулярному выражению.
+    -   совпадений **ноль** → `UNDEFINED`, Cucumber печатает готовый сниппет для копирования;
+    -   совпадений **больше одного** → `AMBIGUOUS`, ошибка: два разных шага матчат одну строку.
+4.  Вызывает найденную функцию, подставляя захваченные параметры и `this` = `World`.
+
+Ключевое следствие: **ключевое слово не влияет на поиск.** Шаг, объявленный через `Given`, спокойно найдётся для строки, начинающейся с `Тогда`. `Given/When/Then` — это про читаемость для человека, а не про логику раннера.
+
+### Изоляция сценариев
+
+`World` создаётся заново на каждый `Scenario` (и на каждую строку `Examples`). Общее состояние между сценариями — антипаттерн: сценарии должны быть независимы и запускаться в любом порядке. Данные, нужные нескольким сценариям одной фичи, готовим в `Background` или в `Before`-хуке, а не «сохраняем от предыдущего теста».
+
+### Живая документация
+
+Главный побочный продукт BDD — **living documentation**: набор `.feature`-файлов, который всегда актуален, потому что он же исполняется в CI. HTML-отчёт Cucumber показывает сценарии тем же текстом, что читал заказчик, — с зелёными и красными шагами, скриншотами и вложениями.
+
+### Теги и CI
+
+```gherkin
+@smoke @auth
+Сценарий: Успешный вход в систему
+```
+
+```bash
+npx cucumber-js --tags "@smoke"                 # быстрый набор на каждый коммит
+npx cucumber-js --tags "@regression and not @wip"  # ночной прогон
+```
+
+Теги — основной способ нарезать один и тот же набор сценариев под разные пайплайны, без дублирования кода.
+
+## Когда BDD оправдан, а когда нет
+
+| BDD даёт выигрыш                                              | BDD — лишняя прослойка                                    |
+|:--------------------------------------------------------------|:-----------------------------------------------------------|
+| Требования обсуждаются командой, есть нетехнический заказчик    | Автотесты пишет и читает только автоматизатор               |
+| Сложная бизнес-логика с множеством правил и краевых случаев     | Тонкий CRUD, где сценарий = «открыл страницу, увидел текст» |
+| Приёмочные критерии нужны до разработки                         | Тесты пишутся сильно после релиза фичи                      |
+| Feature-файлы реально читают вне команды тестирования           | Gherkin используется как «красивый заголовок теста»         |
+
+Честный вывод для занятия: Gherkin — это не бесплатно. Он окупается коммуникацией, а не автоматизацией.
+
+## Antipatterns: как не надо писать сценарии
+
+Главный признак сломанного BDD — сценарий, который нельзя показать аналитику.
+
+```gherkin
+# ПЛОХО: императивный сценарий, описывает интерфейс, а не поведение
+Когда я ввожу "ivan@example.com" в поле "#login-email"
+И я ввожу "super-secret" в поле "#login-password"
+И я нажимаю на кнопку с селектором "[data-testid='button-login']"
+Тогда я вижу элемент ".success"
+```
+
+```gherkin
+# ХОРОШО: декларативный сценарий, описывает намерение пользователя
+Когда пользователь входит с email "ivan@example.com" и паролем "super-secret"
+Тогда отображается приветствие "Добро пожаловать, Иванов Иван!"
+```
+
+Ещё несколько правил:
+
+-   **Один сценарий — одно поведение.** Если в сценарии больше одного `Когда`, скорее всего, это два сценария.
+-   **Не передавайте состояние через глобальные переменные** — только через `World`.
+-   **Не дублируйте шаги.** «Я нажимаю кнопку Войти» и «Нажимаю на кнопку "Войти"» — два разных шага для Cucumber и вечный источник боли.
+-   **Feature-файл — это документация.** Если его пишет только автоматизатор и никто, кроме него, не читает, — вы получили Gherkin, но не получили BDD.
 
 ## Полезные ресурсы
--   **Cucumber.js**: [Официальная документация](https://cucumber.io/docs/cucumber/)
--   **CodeceptJS**: [Раздел документации по BDD](https://codecept.io/bdd/)
+-   **Cucumber.js**: [Официальная документация](https://github.com/cucumber/cucumber-js/tree/main/docs)
 -   **Gherkin Reference**: [Справочник по синтаксису Gherkin](https://cucumber.io/docs/gherkin/reference/)
+-   **Cucumber Expressions**: [Документация](https://github.com/cucumber/cucumber-expressions)
+-   **Playwright Library API**: [playwright.dev](https://playwright.dev/docs/library)
+-   **BDD Books, Gojko Adzic** — «Specification by Example»
