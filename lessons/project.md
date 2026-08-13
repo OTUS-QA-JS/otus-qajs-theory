@@ -95,7 +95,7 @@
 * [Magento Demo](https://magento.softwaretestingboard.com)
 * [Demo Web Shop](https://demowebshop.tricentis.com)
 * [Contact List](https://thinking-tester-contact-list.herokuapp.com)
-* [RWA Demo](https://rwa-194.87.102.103.sslip.io)
+* [RWA Demo](https://rwa-188.130.251.61.sslip.io)
 * [DemoQA](https://demoqa.com/)
 
 ---
